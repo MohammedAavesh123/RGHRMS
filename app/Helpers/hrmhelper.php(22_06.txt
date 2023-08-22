@@ -1,0 +1,315 @@
+<?php
+namespace App\Helpers;
+Use Config;
+Use Redirect;
+Use Session;
+use App\Models\Admin\AdminNotification;
+Use DB;
+use Auth;
+use App\Models\User;
+use App\Models\JobSeeker;
+use App\Models\Job;
+// use App\Model\Registerusers;
+
+class Helpers {
+  public static function checkPermission($userid , $modelName , $method){
+
+    $role_id = DB::table('users')->where('id', $userid)->pluck('role_id');
+    $model = DB::table('models')->where('model_name', $modelName)->pluck('id');
+
+    $permission = DB::table('permission_lists')->where('role_id',$role_id)
+    ->where('model_id',$model)
+    ->where($method, 'Y')
+    ->get();
+
+    if(empty($permission[0])){
+    	return false;
+    }
+    else{
+    	return true;
+    }
+
+  }
+
+  public static function Addnotification($getdata){
+    $notifications = New AdminNotification;
+  if(!empty($getdata['employee_id'])){
+    $employee_id = $getdata['employee_id'];
+    $remain_msg = $getdata['message'];
+    $job_seeker_id = !empty($getdata['job_seeker_id']) ? $getdata['job_seeker_id'] : NULL;
+
+    $data = User::where('id',$employee_id)->selectRaw('CONCAT(users.firstname, " ", users.lastname) as full_name')->first();
+
+    $message = !empty($remain_msg) ? $data->full_name." ".$remain_msg : "This message From $data->full_name";
+
+    $notifications['employee_id'] = !empty($employee_id) ? $employee_id : NULL;
+    $notifications['is_read'] = 0;
+    $notifications['message'] = $message;
+    $notifications['job_seeker_id'] = !empty($getdata['job_seeker_id']) ? $getdata['job_seeker_id'] : NULL;
+    $notifications['job_id'] = !empty($getdata['job_id']) ? $getdata['job_id'] : NULL;
+
+  //  dd($notifications);
+    if(!empty($notifications)){
+    //  dd($notifications);
+       $res = $notifications->save();
+    }
+    else{
+        echo "Data not found";
+    }
+  }
+elseif(!empty($getdata['id'])){
+  $jobseekerdata = JobSeeker::join('jobs','jobs.id','job_seekers.job_id')->where('job_seekers.id',$getdata->id)->select('job_seekers.firstname as name','job_seekers.lastname as last_name','job_seekers.*','jobs.job_title as job_title')->first();
+  $userdata = DB::table('users')->where('users.id',$getdata->emp_id)->first();
+        if($getdata->type_apply == 'WFH'){
+            if ($getdata->type_apply == 'WFH') {
+                     $applyType =  'Work From Home';
+                   }elseif (!empty($jobseekerdata->job_title)){
+                     $applyType =  $jobseekerdata->job_title;
+                   }else{
+                     $applyType = '';
+                   }
+                  if ($getdata->type_apply == 'WFH'){
+
+                    $name = !empty($userdata->firstname) ? $userdata->firstname : '';
+                  }else{
+                    $name = !empty($jobseekerdata->name) ? $jobseekerdata->name : '';
+
+            }
+            }elseif($getdata->type_apply == 'LateInEarlyOut'){
+              if ($getdata->type_apply == 'LateInEarlyOut') {
+                        if ($getdata->request_type == 'late_in'){
+
+                          $applyType =  'Late In';
+                        }elseif ($getdata->request_type == 'early_out'){
+
+                          $applyType =  'Early Out';
+                        }else{
+                          $applyType =  'Other';
+
+                          }
+                       }elseif (!empty($jobseekerdata->job_title)){
+                         $applyType =  $jobseekerdata->job_title;
+                       }else{
+                         $applyType = '';
+                       }
+
+                      if ($getdata->type_apply == 'LateInEarlyOut'){
+
+                        $name = !empty($userdata->firstname) ? $userdata->firstname : '';
+                      }else{
+                        $name = !empty($jobseekerdata->name) ? $jobseekerdata->name : '';
+
+              }
+              }elseif($getdata->type_apply == 'Covertime'){
+                if ($getdata->type_apply == 'Covertime') {
+                           $applyType =  'Cover Time';
+                         }elseif (!empty($jobseekerdata->job_title)){
+                           $applyType =  $jobseekerdata->job_title;
+                         }else{
+                           $applyType = '';
+                         }
+                        if ($getdata->type_apply == 'Covertime'){
+
+                          $name = !empty($userdata->firstname) ? $userdata->firstname : '';
+                        }else{
+                          $name = !empty($jobseekerdata->name) ? $jobseekerdata->name : '';
+
+                }
+              }elseif($getdata->type_apply == 'leave'){
+                if ($getdata->type_apply == 'leave') {
+                           $applyType =  'leave';
+                         }elseif (!empty($jobseekerdata->job_title)){
+                           $applyType =  $jobseekerdata->job_title;
+                         }else{
+                           $applyType = '';
+                         }
+                        if ($getdata->type_apply == 'leave'){
+
+                          $name = !empty($userdata->firstname) ? $userdata->firstname : '';
+                        }else{
+                          $name = !empty($jobseekerdata->name) ? $jobseekerdata->name : '';
+
+                    }
+                  }elseif($getdata->type_apply == 'Resignation'){
+                    if ($getdata->type_apply == 'Resignation') {
+                               $applyType =  'Resignation';
+                             }elseif (!empty($jobseekerdata->job_title)){
+                               $applyType =  $jobseekerdata->job_title;
+                             }else{
+                               $applyType = '';
+                             }
+                            if ($getdata->type_apply == 'Resignation'){
+
+                              $name = !empty($userdata->firstname) ? $userdata->firstname : '';
+                            }else{
+                              $name = !empty($jobseekerdata->name) ? $jobseekerdata->name : '';
+
+                        }
+                      }elseif($getdata->type_apply == 'Forgotcheckout'){
+                        if ($getdata->type_apply == 'Forgotcheckout') {
+                                   $applyType =  'Forgotcheckout';
+                                 }elseif (!empty($jobseekerdata->job_title)){
+                                   $applyType =  $jobseekerdata->job_title;
+                                 }else{
+                                   $applyType = '';
+                                 }
+                                if ($getdata->type_apply == 'Forgotcheckout'){
+
+                                  $name = !empty($userdata->firstname) ? $userdata->firstname : '';
+                                }else{
+                                  $name = !empty($jobseekerdata->name) ? $jobseekerdata->name : '';
+
+                            }
+                          }
+
+
+  $notifications['employee_id'] = !empty($employee_id) ? $employee_id : NULL;
+  $message  = $name." applied for the ". $applyType;
+
+  $notifications['is_read'] = 0;
+  $notifications['message'] = $message;
+  $notifications['job_seeker_id'] = !empty($getdata['id']) ? $getdata['id'] : NULL;
+  $notifications['employee_id'] = !empty($getdata['emp_id']) ? $getdata['emp_id'] : NULL;
+  $notifications['job_id'] = !empty($getdata['job_id']) ? $getdata['job_id'] : NULL;
+
+  if(!empty($notifications)){
+     $res = $notifications->save();
+  }
+  else{
+      echo "Data not found";
+  }
+}  // dd($getdata);
+
+
+  }
+  public function NotificationStatusUpdate(){
+
+    $user = Auth::user();
+    if($user->role_id == 2) {
+
+      $employee_time_remain_noti = DB::table('admin_notification')->where('is_read',0)->where('employee_id',$user->id)->get();
+
+    }
+    elseif ($user->role_id == 1) {
+
+      $employee_time_remain_noti = DB::table('admin_notification')
+                    ->where('is_read',0)->orderBy('created_at','desc')->where('employee_id',NULL)->limit(5)->get();
+    } else{
+      $employee_time_remain_noti = DB::table('admin_notification')->where('is_read',0)->where('employee_id',$auth_id)->get();
+    }
+
+    if (!$employee_time_remain_noti->isEmpty()) {
+      // dd($employee_time_remain_noti);
+      foreach ($employee_time_remain_noti as $key => $value) {
+          if($value->is_read == 0){
+            $id = $value->id;
+            $notifyupdate['is_read'] = 1;
+            $res =  DB::table('admin_notification')->where('id', $id)->update($notifyupdate);
+            // print_r($res);
+          }
+      }
+      echo json_encode(['msg'=>'record updated.','status'=>2,'count'=>count($employee_time_remain_noti),'data'=>$value]);
+    }
+    else{
+      echo json_encode(['error'=>'record not found.','status'=>1]);
+    }
+      // -----Before 25-03-22 Code
+
+    // $auth_id = Auth::User()->id;
+    // $notification = new AdminNotification;
+    // $notify = AdminNotification::where('is_read',0)->orderBy('created_at','desc')->limit(5)->get();
+    //
+    // $emp_notify = AdminNotification::where('is_read',0)->orderBy('created_at','desc')
+    //             ->where('employee_id',$auth_id)->where('employee_id','!=',NULL)->limit(5)->get();
+    //
+    // if (!$notify->isEmpty()) {
+    //   foreach ($notify as $key => $value) {
+    //       if($value->is_read == 0){
+    //         $id = $value->id;
+    //         $notifyupdate['is_read'] = 1;
+    //         $res =  DB::table('admin_notification')->where('id', $id)->update($notifyupdate);
+    //         // print_r($res);
+    //       }
+    //   }
+    //   echo json_encode(['msg'=>'record updated.','status'=>2,'count'=>count($notify),'data'=>$value]);
+    // }
+    // elseif(!$emp_notify->isEmpty()){
+    //   foreach ($emp_notify as $key => $value) {
+    //       if($value->is_read == 0){
+    //         $id = $value->id;
+    //         $notifyupdate['is_read'] = 1;
+    //         $res =  DB::table('admin_notification')->where('id', $id)
+    //                 ->where('employee_id','!=',NULL)
+    //                 ->where('employee_id',$auth_id)
+    //                 ->update($notifyupdate);
+    //
+    //       // print_r($res);
+    //       }
+    //   }
+    //
+    //
+    //   echo json_encode(['msg'=>'ClearAll Notifications updated.','status'=>2,'count'=>count($notify),'data'=>$value]);
+    // }
+    // else{
+    //   echo json_encode(['error'=>'record not found.','status'=>1]);
+    // }
+
+    // -----Before 25-03-22 Code End
+
+
+  }
+
+
+          public static function geolocationaddress($lat, $long)
+        {
+          // dd($lat);
+          $url = "http://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long&sensor=false";
+
+              // Make the HTTP request
+              $data = @file_get_contents($url);
+              // Parse the json response
+              $jsondata = json_decode($data,true);
+              echo"<pre>";
+              print_r($jsondata);
+              die;
+            $geocode = "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long&sensor=false&key=AIzaSyDZWa1BERSX95mIDynhepLkj2caYtQ6eE4";
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $geocode);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_PROXYPORT, 3128);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            $response = curl_exec($ch);
+            curl_close($ch);
+            $output = json_decode($response);
+            dd($output);
+            $dataarray = get_object_vars($output);
+            if ($dataarray['status'] != 'ZERO_RESULTS' && $dataarray['status'] != 'INVALID_REQUEST') {
+                if (isset($dataarray['results'][0]->formatted_address)) {
+
+                    $address = $dataarray['results'][0]->formatted_address;
+
+                } else {
+                    $address = 'Not Found';
+
+                }
+            } else {
+                $address = 'Not Found';
+            }
+
+    return $address;
+}
+
+public static function displayDates($date1, $date2, $format = 'Y-m-d' ) {
+  $dates = array();
+  $current = strtotime($date1);
+  $date2 = strtotime($date2);
+  $stepVal = '+1 day';
+  while( $current <= $date2 ) {
+     $dates[] = date($format, $current);
+     $current = strtotime($stepVal, $current);
+  }
+  return $dates;
+}
+
+}
